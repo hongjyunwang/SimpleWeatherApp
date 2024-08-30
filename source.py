@@ -4,6 +4,11 @@ import requests
 from PIL import Image, ImageTk
 import io
 
+# set up API call as global variables
+API_KEY = "d5414be73d714712aeda1dc905698c87"
+WEATHER_URL = "https://api.weatherbit.io/v2.0/current"
+ICON_URL = "https://www.weatherbit.io/static/img/icons/{}.png"
+
 class WeatherApp:
     def __init__ (self, root):
         """
@@ -21,10 +26,6 @@ class WeatherApp:
         self.root.title("Weather App")
         self.root.geometry("400x400")
         self.root.resizable(False, False)
-
-        # set up API call
-        self.api_key = "8bb3b954b2e187cdb9316774b94f260c"
-        self.base_url = "http://api.openweathermap.org/data/2.5/weather"
 
         # setup_ui member function is immediately called in WeatherApp initialization
         self.setup_ui()
@@ -85,22 +86,19 @@ class WeatherApp:
             messagebox.showerror("Error", "Please enter a city name.")
             return
         
-        params = {"q": city, "appid": self.api_key, "units": "metric"}
+        params = {"city": city, "key": API_KEY, "units": "M"}
 
         try:
-            response = requests.get(self.base_url, params = params)
+            response = requests.get(WEATHER_URL, params = params)
             response.raise_for_status()
-            weather_data = response.json()
+            weather_data = response.json()['data'][0]
 
             # Extract necessary weather data
-            temp = weather_data["main"]["temp"]
-            description = weather_data["weather"][0]["description"].capitalize()
-            icon_code = weather_data["weather"][0]["icon"]
-            wind_speed = weather_data["wind"]["speed"]
-
-            # OpenWeatherMap doesn't provide precipitation data
-            # Need to use different API for this
-            precipitation = "N/A"
+            temp = weather_data['temp']
+            description = weather_data['weather']['description']
+            icon_code = weather_data["weather"]["icon"]
+            wind_speed = weather_data["wind_spd"]
+            precipitation = weather_data["precip"]
 
             # Update UI
             self.update_weather_display(temp, description, icon_code, precipitation, wind_speed)
@@ -125,11 +123,11 @@ class WeatherApp:
         # Update labels
         self.temp_label.config(text = f"{temp}°C")
         self.description_label.config(text = description)
-        self.precipitation_label.config(text = f"Chance of precipitation: {precipitation}")
+        self.precipitation_label.config(text = f"Amount of precipitation: {precipitation} mm")
         self.wind_label.config(text = f"Wind speed: {wind_speed} m/s")
 
         # Fetch and display weather icon
-        icon_url = f"http://openweathermap.org/img/wn/{icon_code}@2x.png"
+        icon_url = ICON_URL.format(icon_code)
         try:
             response = requests.get(icon_url)
             response.raise_for_status()
