@@ -6,7 +6,8 @@ import io
 
 # set up API call as global variables
 API_KEY = "d5414be73d714712aeda1dc905698c87"
-WEATHER_URL = "https://api.weatherbit.io/v2.0/current"
+CURRENT_WEATHER_URL = "https://api.weatherbit.io/v2.0/current"
+FORECAST_URL = "https://api.weatherbit.io/v2.0/forecast/daily"
 ICON_URL = "https://www.weatherbit.io/static/img/icons/{}.png"
 
 class WeatherApp:
@@ -15,8 +16,8 @@ class WeatherApp:
         Initialization of the WeatherApp class
 
         Inputs:
-        self: an instance of the class itself
-        root: an instance of a tk object that is the main application window 
+        - self: an instance of the class itself
+        - root: an instance of a tk object that is the main application window 
 
         Outputs:
         None
@@ -35,7 +36,7 @@ class WeatherApp:
         Sets up the basic graphics sections of the UI, including city input, the search button, and the data display
 
         Inputs:
-        self: an instance of the class itself
+        - self: an instance of the class itself
 
         Outputs:
         None
@@ -63,19 +64,21 @@ class WeatherApp:
         self.description_label = tk.Label(self.weather_frame)
         self.description_label.grid(row = 1, column = 1, padx = 10)
 
-        self.precipitation_label = tk.Label(self.root)
-        self.precipitation_label.pack()
+        self.precipitation_chance_label = tk.Label(self.root)
+        self.precipitation_chance_label.pack()
+
+        self.precipitation_amount_label = tk.Label(self.root)
+        self.precipitation_amount_label.pack()
 
         self.wind_label = tk.Label(self.root)
         self.wind_label.pack()
 
-    # Needs to define get_weather function
     def get_weather(self):
         """
         Fetching the weather data from the API and updaing the UI, stores data in weather_data dictionary 
 
         Inputs:
-        self: an instance of the class itself
+        - self: an instance of the class itself
 
         Outputs:
         None
@@ -89,41 +92,72 @@ class WeatherApp:
         params = {"city": city, "key": API_KEY, "units": "M"}
 
         try:
-            response = requests.get(WEATHER_URL, params = params)
-            response.raise_for_status()
-            weather_data = response.json()['data'][0]
-
-            # Extract necessary weather data
-            temp = weather_data['temp']
-            description = weather_data['weather']['description']
-            icon_code = weather_data["weather"]["icon"]
-            wind_speed = weather_data["wind_spd"]
-            precipitation = weather_data["precip"]
+            current_weather = self.fetch_current_weather(city)
+            forecast = self.fetch_forecast(city)
 
             # Update UI
-            self.update_weather_display(temp, description, icon_code, precipitation, wind_speed)
+            self.update_weather_display(current_weather, forecast[0])
 
         except requests.RequestException as e:
             messagebox.showerror("Error", f"Failed to fetch weather data: {str(e)}")
 
-    def update_weather_display(self, temp, description, icon_code, precipitation, wind_speed):
+    def fetch_current_weather(self, city):
         """
-        Updates the UI display based on the data accessed from the API
+        Access the current weather data through the CURRENT_WEATHER_URL
 
         Inputs:
-        self: an instance of the class itself
-        description: weather description data from API
-        icon_code: icon obtained from API
-        precipitation: precipitation obtained from API
-        wind_speed: wind speed data obtainde from API
+        - self: instance of this class
+        - city: inputted city name
 
         Outputs:
         None
         """
+        params = {"city": city, "key": API_KEY, "units": "M"}
+        response = requests.get(CURRENT_WEATHER_URL, params = params)
+        response.raise_for_status()
+        return response.json()['data'][0]
+    
+    def fetch_forecast(self, city):
+        """
+        Access the forecasted weather data through FORECAST_URL
+
+        Inputs:
+        - self: instance of this class
+        - city: inputted city name
+
+        Outputs:
+        None
+        """
+        params = {"city": city, "key": API_KEY, "units": "M",  "days": 1}        
+        response = requests.get(FORECAST_URL, params = params)
+        response.raise_for_status()
+        return response.json()['data']
+
+    def update_weather_display(self, current, forecast):
+        """
+        Updates the UI display based on the data accessed from the API
+
+        Inputs:
+        - self: an instance of the class itself
+        - current: Current weather data obtained from API call
+        - forecast: Forecasted weather data obtained from API call
+
+        Outputs:
+        None
+        """
+        # Extract necessary values from fetched current and forecast data
+        temp = current['temp']
+        description = current['weather']['description']
+        icon_code = current['weather']['icon']
+        wind_speed = current['wind_spd']
+        precip_amount = current['precip']
+        precip_chance = forecast['pop']
+
         # Update labels
         self.temp_label.config(text = f"{temp}°C")
         self.description_label.config(text = description)
-        self.precipitation_label.config(text = f"Amount of precipitation: {precipitation} mm")
+        self.precipitation_chance_label.config(text=f"Chance of Precipitation: {precip_chance}%")
+        self.precipitation_amount_label.config(text = f"Amount of precipitation: {precip_amount} mm")
         self.wind_label.config(text = f"Wind speed: {wind_speed} m/s")
 
         # Fetch and display weather icon
