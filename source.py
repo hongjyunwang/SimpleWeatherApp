@@ -69,8 +69,41 @@ class WeatherApp:
         self.wind_label.pack()
 
     # Needs to define get_weather function
-    def get_weather():
-        return
+    def get_weather(self):
+        """
+        Fetching the weather data from the API and updaing the UI
+
+        Inputs:
+        self: an instance of the class itself
+        """
+        # Access city name from city_entry
+        city = self.city_entry.get()
+        if not city:
+            messagebox.showerror("Error", "Please enter a city name.")
+            return
+        
+        params = {"q": city, "appid": self.api_key, "units": "metric"}
+
+        try:
+            response = requests.get(self.base_url, params = params)
+            response.raise_for_status()
+            weather_data = response.json()
+
+            # Extract necessary weather data
+            temp = weather_data["main"]["temp"]
+            description = weather_data["weather"][0]["description"].capitalize()
+            icon_code = weather_data["weather"][0]["icon"]
+            wind_speed = weather_data["wind"]["speed"]
+
+            # OpenWeatherMap doesn't provide precipitation data
+            # Need to use different API for this
+            precipitation = "N/A"
+            
+        except requests.RequestException as e:
+            messagebox.showerror("Error", f"Failed to fetch weather data: {str(e)}")
+
+
+
 
     
 
