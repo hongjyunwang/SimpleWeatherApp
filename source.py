@@ -71,10 +71,13 @@ class WeatherApp:
     # Needs to define get_weather function
     def get_weather(self):
         """
-        Fetching the weather data from the API and updaing the UI
+        Fetching the weather data from the API and updaing the UI, stores data in weather_data dictionary 
 
         Inputs:
         self: an instance of the class itself
+
+        Outputs:
+        None
         """
         # Access city name from city_entry
         city = self.city_entry.get()
@@ -98,15 +101,45 @@ class WeatherApp:
             # OpenWeatherMap doesn't provide precipitation data
             # Need to use different API for this
             precipitation = "N/A"
-            
+
+            # Update UI
+            self.update_weather_display(temp, description, icon_code, precipitation, wind_speed)
+
         except requests.RequestException as e:
             messagebox.showerror("Error", f"Failed to fetch weather data: {str(e)}")
 
+    def update_weather_display(self, temp, description, icon_code, precipitation, wind_speed):
+        """
+        Updates the UI display based on the data accessed from the API
 
+        Inputs:
+        self: an instance of the class itself
+        description: weather description data from API
+        icon_code: icon obtained from API
+        precipitation: precipitation obtained from API
+        wind_speed: wind speed data obtainde from API
 
+        Outputs:
+        None
+        """
+        # Update labels
+        self.temp_label.config(text = f"{temp}°C")
+        self.description_label.config(text = description)
+        self.precipitation_label.config(text = f"Chance of precipitation: {precipitation}")
+        self.wind_label.config(text = f"Wind speed: {wind_speed} m/s")
 
-    
-
+        # Fetch and display weather icon
+        icon_url = f"http://openweathermap.org/img/wn/{icon_code}@2x.png"
+        try:
+            response = requests.get(icon_url)
+            response.raise_for_status()
+            img_data = response.content
+            img = Image.open(io.BytesIO(img_data))
+            photo = ImageTk.PhotoImage(img)
+            self.icon_label.config(image=photo)
+            self.icon_label.image = photo
+        except requests.RequestException:
+            self.icon_label.config(image = "")
 
 if __name__ == "__main__":
     root = tk.Tk()
