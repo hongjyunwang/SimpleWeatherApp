@@ -27,7 +27,7 @@ class WeatherApp:
         # Characterize the main window root
         self.root = root
         self.root.title("Weather App")
-        self.root.geometry("400x400")
+        self.root.geometry("400x430")
         self.root.resizable(False, False)
 
         # setup_ui member function is immediately called in WeatherApp initialization
@@ -78,7 +78,23 @@ class WeatherApp:
 
         self.wind_label = tk.Label(self.root)
         self.wind_label.pack()
-    
+
+        # Create a frame for the bottom elements
+        self.bottom_frame = tk.Frame(self.root)
+        self.bottom_frame.pack(side = tk.BOTTOM, fill = tk.X, pady = 10)
+
+        # Configure grid columns
+        self.bottom_frame.columnconfigure(0, weight = 1)  # Name column expands
+        self.bottom_frame.columnconfigure(1, weight = 0)  # Info button column doesn't expand
+
+        # Add my name
+        self.name_label = tk.Label(self.bottom_frame, text = "Hong-Jyun Wang", font = ("Arial", 10))
+        self.name_label.grid(row = 0, column = 0, sticky = "w", padx = 10)
+
+        # Add info button
+        self.info_button = tk.Button(self.bottom_frame, text = "ⓘ", command = self.show_info, font = ("Arial", 12))
+        self.info_button.grid(row = 0, column = 1, sticky = "e", padx = 10)
+
     def get_local_time(self, timezone):
         """
         Get input city local time based on timezone
@@ -149,6 +165,32 @@ class WeatherApp:
         response = requests.get(FORECAST_URL, params = params)
         response.raise_for_status()
         return response.json()['data']
+
+    def show_info(self):
+        """
+        Command function for showing PM Accelerator information when info button is clicked
+        
+        Inputs:
+        - self: an instance of the class itself
+        """
+        # Create a new window
+        info_window = tk.Toplevel(self.root)
+        info_window.title("About Weather App")
+        info_window.geometry("300x200")
+
+        # Add a text widget with a description
+        info_text = tk.Text(info_window, wrap = tk.WORD, padx = 10, pady = 10)
+        info_text.pack(expand = True, fill = tk.BOTH)
+        
+        description = """The Product Manager Accelerator Program is designed to support PM professionals 
+        through every stage of their career. From students looking for entry-level jobs to Directors looking 
+        to take on a leadership role, our program has helped over hundreds of students fulfill their career 
+        aspirations. Our Product Manager Accelerator community are ambitious and committed. Through our program 
+        they have learnt, honed and developed new PM and leadership skills, giving them a strong foundation for 
+        their future endeavours."""
+        
+        info_text.insert(tk.END, description)
+        info_text.config(state = tk.DISABLED)  # Make the text read-only
 
     def update_weather_display(self, current, forecast):
         """
