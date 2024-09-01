@@ -53,6 +53,9 @@ class WeatherApp:
         self.search_button = tk.Button(self.root, text = "Search", command = self.get_weather)
         self.search_button.pack(pady = 10)
 
+         # Bind the Enter key to the city entry
+        self.city_entry.bind('<Return>', self.get_weather)
+
         # Local Time Display
         self.local_time_label = tk.Label(self.root, font=("Arial", 14))
         self.local_time_label.pack(pady = 5)
@@ -64,8 +67,14 @@ class WeatherApp:
         self.icon_label = tk.Label(self.weather_frame)
         self.icon_label.grid(row = 0, column = 0, rowspan = 2)
 
-        self.temp_label = tk.Label(self.weather_frame, font = ("Arial", 20))
-        self.temp_label.grid(row = 0, column = 1, padx = 10)
+        self.temp_frame = tk.Frame(self.weather_frame)
+        self.temp_frame.grid(row=0, column=1, padx=10)
+
+        self.temp_c_label = tk.Label(self.temp_frame, font=("Arial", 20))
+        self.temp_c_label.pack(side=tk.LEFT)
+
+        self.temp_f_label = tk.Label(self.temp_frame, font=("Arial", 20))
+        self.temp_f_label.pack(side=tk.LEFT, padx=(10, 0))
 
         self.description_label = tk.Label(self.weather_frame)
         self.description_label.grid(row = 1, column = 1, padx = 10)
@@ -106,12 +115,13 @@ class WeatherApp:
         local_time = datetime.now(pytz.timezone(timezone))
         return local_time.strftime("%I:%M %p")
 
-    def get_weather(self):
+    def get_weather(self, event=None):
         """
         Fetching the weather data from the API and updaing the UI, stores data in weather_data dictionary 
 
         Inputs:
         - self: an instance of the class itself
+        - event: the event that triggered this method (optional, used for key bindings)
 
         Outputs:
         None
@@ -205,7 +215,8 @@ class WeatherApp:
         None
         """
         # Extract necessary values from fetched current and forecast data
-        temp = current['temp']
+        temp_c = current['temp']
+        temp_f = (temp_c * 9/5) + 32
         description = current['weather']['description']
         icon_code = current['weather']['icon']
         wind_speed = current['wind_spd']
@@ -218,7 +229,8 @@ class WeatherApp:
 
         # Update labels
         self.local_time_label.config(text=f"Local Time: {local_time}")
-        self.temp_label.config(text = f"{temp}°C")
+        self.temp_c_label.config(text=f"{temp_c:.1f}°C")
+        self.temp_f_label.config(text=f"({temp_f:.1f}°F)")
         self.description_label.config(text = description)
         self.precipitation_chance_label.config(text=f"Chance of Precipitation: {precip_chance}%")
         self.precipitation_amount_label.config(text = f"Amount of precipitation: {precip_amount} mm")
