@@ -3,6 +3,8 @@ from tkinter import messagebox
 import requests
 from PIL import Image, ImageTk
 import io
+from datetime import datetime
+import pytz
 
 # set up API call as global variables
 API_KEY = "d5414be73d714712aeda1dc905698c87"
@@ -51,6 +53,10 @@ class WeatherApp:
         self.search_button = tk.Button(self.root, text = "Search", command = self.get_weather)
         self.search_button.pack(pady = 10)
 
+        # Local Time Display
+        self.local_time_label = tk.Label(self.root, font=("Arial", 14))
+        self.local_time_label.pack(pady = 5)
+
         # Weather Information Display, including the frame and icon/temp/description/precipitation/wind labels
         self.weather_frame = tk.Frame(self.root)
         self.weather_frame.pack(pady = 20)
@@ -72,6 +78,17 @@ class WeatherApp:
 
         self.wind_label = tk.Label(self.root)
         self.wind_label.pack()
+    
+    def get_local_time(self, timezone):
+        """
+        Get input city local time based on timezone
+
+        Inputs:
+        - self: instance of the class itself
+        - timezone: timezone of the input city
+        """
+        local_time = datetime.now(pytz.timezone(timezone))
+        return local_time.strftime("%I:%M %p")
 
     def get_weather(self):
         """
@@ -152,8 +169,13 @@ class WeatherApp:
         wind_speed = current['wind_spd']
         precip_amount = current['precip']
         precip_chance = forecast['pop']
+        timezone = current['timezone']
+
+        # Get local time
+        local_time = self.get_local_time(timezone)
 
         # Update labels
+        self.local_time_label.config(text=f"Local Time: {local_time}")
         self.temp_label.config(text = f"{temp}°C")
         self.description_label.config(text = description)
         self.precipitation_chance_label.config(text=f"Chance of Precipitation: {precip_chance}%")
