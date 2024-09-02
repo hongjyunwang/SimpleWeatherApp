@@ -7,9 +7,9 @@ from datetime import datetime
 import pytz
 
 # set up API call as global variables
-API_KEY = "d5414be73d714712aeda1dc905698c87"
+API_KEY = "68b6c8b34e0b43bdb5be7a296e63d229"
 CURRENT_WEATHER_URL = "https://api.weatherbit.io/v2.0/current"
-FORECAST_URL = "https://api.weatherbit.io/v2.0/forecast/daily"
+DAILY_FORECAST_URL = "https://api.weatherbit.io/v2.0/forecast/daily"
 ICON_URL = "https://www.weatherbit.io/static/img/icons/{}.png"
 
 class WeatherApp:
@@ -27,7 +27,7 @@ class WeatherApp:
         # Characterize the main window root
         self.root = root
         self.root.title("Weather App")
-        self.root.geometry("400x430")
+        self.root.geometry("900x700")
         self.root.resizable(False, False)
 
         # setup_ui member function is immediately called in WeatherApp initialization
@@ -88,6 +88,25 @@ class WeatherApp:
         self.wind_label = tk.Label(self.root)
         self.wind_label.pack()
 
+        # Daily Forecast Display
+        self.daily_frame = tk.Frame(self.root)
+        self.daily_frame.pack(pady = 20, padx = 10, fill = tk.X)
+
+        self.daily_label = tk.Label(self.daily_frame, text = "7-Day Forecast", font = ("Arial", 14, "bold"))
+        self.daily_label.pack()
+
+        self.daily_canvas = tk.Canvas(self.daily_frame, height = 150)
+        self.daily_canvas.pack(fill = tk.X)
+
+        self.daily_scroll = tk.Scrollbar(self.daily_frame, orient = tk.HORIZONTAL, command = self.daily_canvas.xview)
+        self.daily_scroll.pack(fill = tk.X)
+
+        self.daily_canvas.configure(xscrollcommand = self.daily_scroll.set)
+        self.daily_canvas.bind('<Configure>', lambda e: self.daily_canvas.configure(scrollregion = self.daily_canvas.bbox("all")))
+
+        self.daily_inner_frame = tk.Frame(self.daily_canvas)
+        self.daily_canvas.create_window((0, 0), window = self.daily_inner_frame, anchor = "nw")
+
         # Create a frame for the bottom elements
         self.bottom_frame = tk.Frame(self.root)
         self.bottom_frame.pack(side = tk.BOTTOM, fill = tk.X, pady = 10)
@@ -115,7 +134,7 @@ class WeatherApp:
         local_time = datetime.now(pytz.timezone(timezone))
         return local_time.strftime("%I:%M %p")
 
-    def get_weather(self, event=None):
+    def get_weather(self):
         """
         Fetching the weather data from the API and updaing the UI, stores data in weather_data dictionary 
 
@@ -132,14 +151,16 @@ class WeatherApp:
             messagebox.showerror("Error", "Please enter a city name.")
             return
         
-        params = {"city": city, "key": API_KEY, "units": "M"}
-
         try:
             current_weather = self.fetch_current_weather(city)
-            forecast = self.fetch_forecast(city)
+
+            forecast = self.fetch_daily_forecast(city)
+
+            daily_forecast = self.fetch_daily_forecast(city)
 
             # Update UI
             self.update_weather_display(current_weather, forecast[0])
+            self.update_daily_forecast_display(daily_forecast)
 
         except requests.RequestException as e:
             messagebox.showerror("Error", f"Failed to fetch weather data: {str(e)}")
@@ -160,9 +181,9 @@ class WeatherApp:
         response.raise_for_status()
         return response.json()['data'][0]
     
-    def fetch_forecast(self, city):
+    def fetch_daily_forecast(self, city):
         """
-        Access the forecasted weather data through FORECAST_URL
+        Access the forecasted weather data through DAILY_FORECAST_URL
 
         Inputs:
         - self: instance of this class
@@ -171,8 +192,8 @@ class WeatherApp:
         Outputs:
         None
         """
-        params = {"city": city, "key": API_KEY, "units": "M",  "days": 1}        
-        response = requests.get(FORECAST_URL, params = params)
+        params = {"city": city, "key": API_KEY, "units": "M",  "days": 7}        
+        response = requests.get(DAILY_FORECAST_URL, params = params)
         response.raise_for_status()
         return response.json()['data']
 
@@ -186,7 +207,7 @@ class WeatherApp:
         # Create a new window
         info_window = tk.Toplevel(self.root)
         info_window.title("About Weather App")
-        info_window.geometry("300x200")
+        info_window.geometry("700x200")
 
         # Add a text widget with a description
         info_text = tk.Text(info_window, wrap = tk.WORD, padx = 10, pady = 10)
@@ -229,10 +250,10 @@ class WeatherApp:
 
         # Update labels
         self.local_time_label.config(text=f"Local Time: {local_time}")
-        self.temp_c_label.config(text=f"{temp_c:.1f}°C")
-        self.temp_f_label.config(text=f"({temp_f:.1f}°F)")
+        self.temp_c_label.config(text = f"{temp_c:.1f}°C")
+        self.temp_f_label.config(text = f"({temp_f:.1f}°F)")
         self.description_label.config(text = description)
-        self.precipitation_chance_label.config(text=f"Chance of Precipitation: {precip_chance}%")
+        self.precipitation_chance_label.config(text = f"Chance of Precipitation: {precip_chance}%")
         self.precipitation_amount_label.config(text = f"Amount of precipitation: {precip_amount} mm")
         self.wind_label.config(text = f"Wind speed: {wind_speed} m/s")
 
@@ -244,10 +265,61 @@ class WeatherApp:
             img_data = response.content
             img = Image.open(io.BytesIO(img_data))
             photo = ImageTk.PhotoImage(img)
-            self.icon_label.config(image=photo)
+            self.icon_label.config(image = photo)
             self.icon_label.image = photo
         except requests.RequestException:
             self.icon_label.config(image = "")
+
+    def update_daily_forecast_display(self, forecast):
+        # Clear any previous forecast data
+        for widget in self.daily_inner_frame.winfo_children():
+            widget.destroy()
+
+        # Create a new frame to hold the forecast widgets and center it
+        forecast_holder = tk.Frame(self.daily_inner_frame)
+        forecast_holder.grid(row=0, column=0, padx=20, pady=10)
+        
+        # Check if forecast data exists
+        if not forecast:
+            tk.Label(forecast_holder, text="No forecast data available.").pack()
+            return
+
+        # Loop through each day's forecast and create the UI elements
+        for i, day_data in enumerate(forecast):
+            day_frame = tk.Frame(forecast_holder)
+            day_frame.grid(row=0, column=i, padx=15, pady=5, sticky="n")
+            
+            # Date Label
+            date = datetime.strptime(day_data['valid_date'], "%Y-%m-%d")
+            date_label = tk.Label(day_frame, text=date.strftime("%a\n%d/%m"))
+            date_label.pack()
+
+            # Weather Icon
+            icon_code = day_data['weather']['icon']
+            icon_url = ICON_URL.format(icon_code)
+            try:
+                response = requests.get(icon_url)
+                response.raise_for_status()
+                img_data = response.content
+                img = Image.open(io.BytesIO(img_data))
+                img = img.resize((30, 30), Image.Resampling.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                icon_label = tk.Label(day_frame, image = photo)
+                icon_label.image = photo
+                icon_label.pack()
+            except requests.RequestException:
+                icon_label = tk.Label(day_frame, text = "No icon")
+                icon_label.pack()
+
+            # Precipitation Chance Label
+            precip_chance = day_data['pop']
+            precip_label = tk.Label(day_frame, text = f"{precip_chance}% chance")
+            precip_label.pack()
+
+            # Temperature Label
+            temp_label = tk.Label(day_frame, text = f"{day_data['temp']:.1f}°C")
+            temp_label.pack()
+
 
 if __name__ == "__main__":
     root = tk.Tk()
