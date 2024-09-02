@@ -5,6 +5,7 @@ from PIL import Image, ImageTk
 import io
 from datetime import datetime
 import pytz
+import math
 
 # set up API call as global variables
 API_KEY = "68b6c8b34e0b43bdb5be7a296e63d229"
@@ -27,7 +28,7 @@ class WeatherApp:
         # Characterize the main window root
         self.root = root
         self.root.title("Weather App")
-        self.root.geometry("900x700")
+        self.root.geometry("1000x700")
         self.root.resizable(False, False)
 
         # setup_ui member function is immediately called in WeatherApp initialization
@@ -44,7 +45,7 @@ class WeatherApp:
         None
         """
         # City Input Box
-        self.city_label = tk.Label(self.root, text = "Enter city:")
+        self.city_label = tk.Label(self.root, text = "Enter Country/District/City/Street:")
         self.city_label.pack(pady = 10)
         self.city_entry = tk.Entry(self.root, width = 30)
         self.city_entry.pack()
@@ -134,7 +135,7 @@ class WeatherApp:
         local_time = datetime.now(pytz.timezone(timezone))
         return local_time.strftime("%I:%M %p")
 
-    def get_weather(self):
+    def get_weather(self, event=None):
         """
         Fetching the weather data from the API and updaing the UI, stores data in weather_data dictionary 
 
@@ -240,8 +241,9 @@ class WeatherApp:
         temp_f = (temp_c * 9/5) + 32
         description = current['weather']['description']
         icon_code = current['weather']['icon']
-        wind_speed = current['wind_spd']
-        precip_amount = current['precip']
+        wind_speed_m_s = current['wind_spd']
+        wind_speed_ft_s = wind_speed_m_s * 3.28084
+        precip_amount = math.trunc(current['precip'])
         precip_chance = forecast['pop']
         timezone = current['timezone']
 
@@ -249,13 +251,13 @@ class WeatherApp:
         local_time = self.get_local_time(timezone)
 
         # Update labels
-        self.local_time_label.config(text=f"Local Time: {local_time}")
-        self.temp_c_label.config(text = f"{temp_c:.1f}°C")
-        self.temp_f_label.config(text = f"({temp_f:.1f}°F)")
-        self.description_label.config(text = description)
+        self.local_time_label.config(text=f"Local Time: {local_time}", font = ("Arial", 20))
+        self.temp_c_label.config(text = f"{temp_c:.1f}°C", font = ("Arial", 20))
+        self.temp_f_label.config(text = f"({temp_f:.1f}°F)", font = ("Arial", 20))
+        self.description_label.config(text = description, font = ("Arial", 20))
         self.precipitation_chance_label.config(text = f"Chance of Precipitation: {precip_chance}%")
-        self.precipitation_amount_label.config(text = f"Amount of precipitation: {precip_amount} mm")
-        self.wind_label.config(text = f"Wind speed: {wind_speed} m/s")
+        self.precipitation_amount_label.config(text = f"Amount of Precipitation: {precip_amount} mm")
+        self.wind_label.config(text = f"Wind Speed: {wind_speed_m_s:.1f} m/s ({wind_speed_ft_s:.1f} ft/s)")
 
         # Fetch and display weather icon
         icon_url = ICON_URL.format(icon_code)
@@ -281,7 +283,7 @@ class WeatherApp:
         
         # Check if forecast data exists
         if not forecast:
-            tk.Label(forecast_holder, text="No forecast data available.").pack()
+            tk.Label(forecast_holder, text="No Forecast Data Available.").pack()
             return
 
         # Loop through each day's forecast and create the UI elements
@@ -308,18 +310,19 @@ class WeatherApp:
                 icon_label.image = photo
                 icon_label.pack()
             except requests.RequestException:
-                icon_label = tk.Label(day_frame, text = "No icon")
+                icon_label = tk.Label(day_frame, text = "No Icon")
                 icon_label.pack()
 
             # Precipitation Chance Label
             precip_chance = day_data['pop']
-            precip_label = tk.Label(day_frame, text = f"{precip_chance}% chance")
+            precip_label = tk.Label(day_frame, text = f"{precip_chance}%")
             precip_label.pack()
 
             # Temperature Label
-            temp_label = tk.Label(day_frame, text = f"{day_data['temp']:.1f}°C")
+            temp_c = day_data['temp']
+            temp_f = (temp_c * 9/5) + 32
+            temp_label = tk.Label(day_frame, text=f"{temp_c:.1f}°C ({temp_f:.1f}°F)")
             temp_label.pack()
-
 
 if __name__ == "__main__":
     root = tk.Tk()
